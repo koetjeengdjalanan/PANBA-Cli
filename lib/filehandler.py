@@ -1,10 +1,12 @@
 from datetime import datetime as dt
+from os import makedirs, path
 from pandas import DataFrame as df
 
 
 def SaveAsExcel(
-    data: dict,
+    data: list,
     flatten: bool = False,
+    output: str = None,
     directory: str = "~",
     fileName: str = "PANBA_EXPORT",
     timestamp: bool = True,
@@ -12,7 +14,7 @@ def SaveAsExcel(
     """Saving a bunch of data in Dictionary to excel. More or so is like '.to_excel()' method of pandas dataframe
 
     Args:
-        data (dict): Data of dictionary to be saved
+        data (list): List of data to be saved
         flatten (bool, optional): Should the data be Flatten?. Defaults to False.
         directory (str, optional): Directory of which the file will be reside. Defaults to "~".
         fileName (str, optional): What should the file called?. Defaults to "PANBA_EXPORT".
@@ -24,14 +26,15 @@ def SaveAsExcel(
     fileName = (
         f"{dt.now().strftime('%Y%m%d_%H%M%S')} - {fileName}" if timestamp else fileName
     )
-    fileLoc = f"{directory}/{fileName}.xlsx"
+    fileLoc = f"{directory}/{fileName}.xlsx" if output is None else output
+    makedirs(path.dirname(fileLoc), exist_ok=True)
     data = [flatten_dict(data=row, level=1) for row in data] if flatten else data
     df(data=data).to_excel(excel_writer=fileLoc, index=False, header=True)
     return fileLoc
 
 
 def flatten_dict(
-    data: dict, parent_key: str = "", sep: str = "_", level: int = 1
+    data: list, parent_key: str = "", sep: str = "_", level: int = 1
 ) -> dict:
     items = []
     for key, value in data.items():

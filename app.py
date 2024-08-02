@@ -9,6 +9,8 @@ from dotenv import load_dotenv, dotenv_values
 
 from lib.api.auth import ApiAuth
 from lib.api.getlist import ElementOfTenant
+from lib.filehandler import SaveAsExcel
+from lib.helper import split_list, split_task_with_progress
 
 
 console = Console()
@@ -20,11 +22,18 @@ def main():
     """
     PANBA-Cli Version, For now it is only utilize for one or Special Needs
     """
+    os.system("cls" if os.name == "nt" else "clear")
     pass
 
 
 @click.command()
-# @click.argument("get-element")
+@click.option(
+    "-t",
+    "--thread-count",
+    help="Number of thread use for this program to run",
+    type=int,
+    default=os.cpu_count(),
+)
 @click.option(
     "-e", "--env-file", help="Provide your own ENV file", type=str, default="./.env"
 )
@@ -33,12 +42,12 @@ def main():
     "--output",
     type=str,
     help="Output file address",
-    default="./output/elementOfTenant.xls",
+    default="./output/elementOfTenant.xlsx",
 )
 @click.option(
     "-v", "--verbose", is_flag=True, default=False, help="Run program verbosely"
 )
-def get_element(env_file, output, verbose):
+def get_element(thread_count: int, env_file: str, output: str, verbose: bool):
     """
     Get Element of all the tenant
     """
@@ -58,9 +67,9 @@ def get_element(env_file, output, verbose):
         controller["env"] = dict(dotenv_values(envFile, verbose=True))
     else:
         controller["env"] = getCred()
-    console.log(controller, output) if verbose else None
+    console.log(controller) if verbose else None
 
-    with console.status("Loging In...", spinner="monkey"):
+    with console.status("Loging In...", spinner="monkey") as status:
         try:
             auth = ApiAuth(
                 userName=controller["env"]["USER_NAME"],
@@ -70,13 +79,23 @@ def get_element(env_file, output, verbose):
             )
         except Exception as err:
             errConsole.log(err)
-    controller["bearerToken"] = auth.bearerToken
+            exit(1)
+        controller["bearerToken"] = auth.bearerToken
+        status.update("Getting Element of Tenant...")
+        elementOfTenant: list = ElementOfTenant(
+            bearerToken=controller["bearerToken"]
+        ).data["items"]
+        if verbose:
+            console.print(f"Number of Tenant: {elementOfTenant.count()}")
+        splitEOT = split_list(elementOfTenant, thread_count)
+        if verbose:
+            for i in len(splitEOT):
+                console.print(f"splitEOT[{i}] Count: {len(splitEOT[i])}")
 
-    with console.status("Getting Element...", spinner="monkey"):
-        elementOfTenant = ElementOfTenant(bearerToken=controller["bearerToken"]).data[
-            "items"
-        ]
-    console.log(elementOfTenant[:3])
+    res = split_task_with_progress(data=splitEOT, env=controller)
+    with console.status("Saving file ...", spinner="monkey") as status:
+        saves = SaveAsExcel(data=res, output=output)
+        console.print(saves)
 
 
 def getCred() -> dict:
