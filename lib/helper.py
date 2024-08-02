@@ -38,9 +38,12 @@ def split_task_with_progress(data: list, env: dict) -> dict:
                 )
             for future in as_completed(futures):
                 res.append(future.result()["res"])
-                errList.append(errConsole.log(future.result()["error"]))
-    errConsole.log(errList) if errList is not None else None
-    return chain.from_iterable(res)
+                errList.append(future.result()["error"])
+    allRes = {
+        "res": list(chain.from_iterable(res)),
+        "err": errList if errList is not None else None,
+    }
+    return allRes
 
 
 def class_wrapper(
@@ -59,14 +62,22 @@ def class_wrapper(
         progress.update(task_id=taskId, description=row["name"])
         try:
             task = IoT(bearerToken=bearer, siteId=row["site_id"], elementId=row["id"])
-            res.append(task.data["items"])
         except Exception as err:
             errList[row["name"]] = err
+        for each in task.data["items"]:
+            each.update(
+                {
+                    "site_name": row["name"],
+                    "site_id": row["site_id"],
+                    "element_id": row["id"],
+                }
+            )
+        res.append(task.data["items"])
         progress.advance(task_id=taskId, advance=1)
         progress.advance(task_id=overallTaskId, advance=1 / sliceLength)
-    progress.update(task_id=taskId, description="Flatting Result")
+    progress.update(task_id=taskId, description="Flattening Result")
     progress.advance(task_id=taskId, advance=1)
     compRes = {}
-    compRes["res"] = chain.from_iterable(res)
+    compRes["res"] = list(chain.from_iterable(res))
     compRes.update(error=errList)
     return compRes
