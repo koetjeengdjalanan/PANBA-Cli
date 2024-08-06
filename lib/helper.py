@@ -11,11 +11,10 @@ from rich.progress import Progress, TaskID  # noqa: E402
 from itertools import chain  # noqa: E402
 
 
+# TODO: Refactor for the sake of reusability
 def split_task_with_progress(data: list, env: dict) -> dict:
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from rich.console import Console
 
-    errConsole = Console(stderr=True)
     with Progress(expand=True) as prog:
         overall = prog.add_task("Overall Progress", total=len(data))
         task_prog = []
@@ -64,6 +63,7 @@ def class_wrapper(
             task = IoT(bearerToken=bearer, siteId=row["site_id"], elementId=row["id"])
         except Exception as err:
             errList[row["name"]] = err
+        # FIXME: Site data details at the first of dictionary!
         for each in task.data["items"]:
             each.update(
                 {
