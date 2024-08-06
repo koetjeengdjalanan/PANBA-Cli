@@ -63,21 +63,21 @@ def class_wrapper(
             task = IoT(bearerToken=bearer, siteId=row["site_id"], elementId=row["id"])
         except Exception as err:
             errList[row["name"]] = err
-        # FIXME: Site data details at the first of dictionary!
+        # [x]: Site data details at the first of dictionary!
         for each in task.data["items"]:
-            each.update(
-                {
-                    "site_name": row["name"],
-                    "site_id": row["site_id"],
-                    "element_id": row["id"],
-                }
-            )
-        res.append(task.data["items"])
+            temp = {
+                "site_name": row["name"],
+                "site_id": row["site_id"],
+                "element_id": row["id"],
+            }
+            temp.update(each)
+            res.append(temp)
+            del temp
         progress.advance(task_id=taskId, advance=1)
         progress.advance(task_id=overallTaskId, advance=1 / sliceLength)
     progress.update(task_id=taskId, description="Flattening Result")
     progress.advance(task_id=taskId, advance=1)
     compRes = {}
-    compRes["res"] = list(chain.from_iterable(res))
+    compRes["res"] = res
     compRes.update(error=errList)
     return compRes
