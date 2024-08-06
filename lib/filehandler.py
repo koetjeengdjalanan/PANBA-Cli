@@ -1,6 +1,6 @@
 from datetime import datetime as dt
 from os import makedirs, path
-from pandas import DataFrame as df
+from pandas import DataFrame as df, read_excel
 
 
 def SaveAsExcel(
@@ -46,3 +46,8 @@ def flatten_dict(
         else:
             items.append((new_key, value))
     return dict(items)
+
+
+def ReadFromExcel(file_loc: str) -> dict:
+    res = read_excel(file_loc)
+    return res.to_dict(orient="records")
