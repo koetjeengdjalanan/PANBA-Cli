@@ -93,9 +93,11 @@ def get_element(thread_count: int, env_file: str, output: str, verbose: bool):
                 console.print(f"splitEOT[{i}] Count: {len(splitEOT[i])}")
 
     res = split_task_with_progress(data=splitEOT, env=controller)
+    if res["err"] is not None:
+        errConsole.log("[bold red]ERROR! [/]", res["err"], sep="\n")
     with console.status("Saving file ...", spinner="monkey") as status:
-        saves = SaveAsExcel(data=res, output=output)
-        console.print(saves)
+        saves = SaveAsExcel(data=res["res"], output=output)
+        console.print("[blue]Saved File [/]", saves)
 
 
 def getCred() -> dict:
