@@ -11,8 +11,9 @@ from rich.progress import Progress, TaskID  # noqa: E402
 from itertools import chain  # noqa: E402
 
 
-# TODO: Refactor for the sake of reusability
-def split_task_with_progress(data: list, env: dict) -> dict:
+# [x]: Refactor for the sake of reusability
+# HACK: This is not refactor per se, but working nonetheless
+def split_task_with_progress(data: list, env: dict, fun) -> dict:
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     with Progress(expand=True) as prog:
@@ -27,7 +28,7 @@ def split_task_with_progress(data: list, env: dict) -> dict:
                 task_prog.append(taskId)
                 futures.append(
                     exec.submit(
-                        class_wrapper,
+                        fun,
                         data[i],
                         env["bearerToken"],
                         prog,
@@ -45,7 +46,7 @@ def split_task_with_progress(data: list, env: dict) -> dict:
     return allRes
 
 
-def class_wrapper(
+def get_interface(
     data: list,
     bearer: str,
     progress: Progress,
@@ -60,11 +61,13 @@ def class_wrapper(
     for row in data:
         progress.update(task_id=taskId, description=row["name"])
         try:
-            task = IoT(bearerToken=bearer, siteId=row["site_id"], elementId=row["id"])
+            task = IoT(
+                bearerToken=bearer, siteId=row["site_id"], elementId=row["id"]
+            ).get()
         except Exception as err:
             errList[row["name"]] = err
         # [x]: Site data details at the first of dictionary!
-        for each in task.data["items"]:
+        for each in task["items"]:
             temp = {
                 "site_name": row["name"],
                 "site_id": row["site_id"],
@@ -73,6 +76,40 @@ def class_wrapper(
             temp.update(each)
             res.append(temp)
             del temp
+        progress.advance(task_id=taskId, advance=1)
+        progress.advance(task_id=overallTaskId, advance=1 / sliceLength)
+    progress.update(task_id=taskId, description="Flattening Result")
+    progress.advance(task_id=taskId, advance=1)
+    compRes = {}
+    compRes["res"] = res
+    compRes.update(error=errList)
+    return compRes
+
+
+def put_interface(
+    data: list,
+    bearer: str,
+    progress: Progress,
+    taskId: TaskID,
+    overallTaskId: TaskID,
+) -> dict:
+    from lib.api.getlist import InterfaceOfTenant as IoT
+
+    res: list = []
+    errList: dict = {}
+    sliceLength = len(data)
+    for row in data:
+        progress.update(task_id=taskId, description=row["name"])
+        body = row
+        [body.pop(key) for key in ["site_name", "site_id", "element_id"]]
+        try:
+            task = IoT(
+                bearerToken=bearer, siteId=row["site_id"], elementId=row["element_id"]
+            ).put(interfaceId=row["id"], body=body)
+        except Exception as err:
+            errList[row["name"]] = err
+        res = {row["site_name"]: "success"}
+        del body
         progress.advance(task_id=taskId, advance=1)
         progress.advance(task_id=overallTaskId, advance=1 / sliceLength)
     progress.update(task_id=taskId, description="Flattening Result")
