@@ -157,7 +157,6 @@ def push_if_changes(thread_count: int, env_file: str, files: str, verbose: bool)
 
     with console.status("Reading Files...", spinner="monkey") as status:
         data = ReadFromExcel(file_loc=files)
-        console.log(data)
         status.update("Loging In...")
         try:
             auth = ApiAuth(

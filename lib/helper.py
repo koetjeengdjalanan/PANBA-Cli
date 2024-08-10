@@ -99,17 +99,19 @@ def put_interface(
     errList: dict = {}
     sliceLength = len(data)
     for row in data:
-        progress.update(task_id=taskId, description=row["name"])
+        siteName = row["site_name"]
+        progress.update(task_id=taskId, description=siteName)
         body = row
         [body.pop(key) for key in ["site_name", "site_id", "element_id"]]
         try:
-            task = IoT(
+            IoT(
                 bearerToken=bearer, siteId=row["site_id"], elementId=row["element_id"]
             ).put(interfaceId=row["id"], body=body)
         except Exception as err:
-            errList[row["name"]] = err
-        res = {row["site_name"]: "success"}
+            errList[siteName] = err
+        res = {siteName: "success"}
         del body
+        del siteName
         progress.advance(task_id=taskId, advance=1)
         progress.advance(task_id=overallTaskId, advance=1 / sliceLength)
     progress.update(task_id=taskId, description="Flattening Result")
