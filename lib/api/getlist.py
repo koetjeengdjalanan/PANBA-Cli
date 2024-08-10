@@ -24,8 +24,8 @@ class ElementOfTenant(BaseModel):
 class InterfaceOfTenant(BaseModel):
 
     bearerToken: str
-    siteId: str
-    elementId: str
+    siteId: int | str
+    elementId: int | str
     headers: dict = {
         "Accept": "application/json",
         "User-Agent": "NTTIndonesia-PANBA/0.2.0",
