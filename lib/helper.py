@@ -100,13 +100,15 @@ def put_interface(
     sliceLength = len(data)
     for row in data:
         siteName = row["site_name"]
+        siteId = row["site_id"]
+        elementId = row["element_id"]
         progress.update(task_id=taskId, description=siteName)
         body = row
         [body.pop(key) for key in ["site_name", "site_id", "element_id"]]
         try:
-            IoT(
-                bearerToken=bearer, siteId=row["site_id"], elementId=row["element_id"]
-            ).put(interfaceId=row["id"], body=body)
+            IoT(bearerToken=bearer, siteId=siteId, elementId=elementId).put(
+                interfaceId=row["id"], body=body
+            )
         except Exception as err:
             errList[siteName] = err
         res = {siteName: "success"}
