@@ -1,3 +1,4 @@
+import json
 from typing import Any
 import requests
 
@@ -21,8 +22,7 @@ class ElementOfTenant(BaseModel):
         self.data = res.json()
 
 
-class InterfaceOfTenant(BaseModel):
-
+class InterfaceOfTenant(BaseModel): 
     bearerToken: str
     siteId: int | str
     elementId: int | str
@@ -47,7 +47,7 @@ class InterfaceOfTenant(BaseModel):
         res = requests.put(
             url=f"{self.baseUrl}{self.uri}/{self.siteId}/elements/{self.elementId}/interfaces/{interfaceId}",
             headers=self.headers,
-            data=body,
+            json=body,
         )
         res.raise_for_status()
         return res.json()
