@@ -1,6 +1,7 @@
+import ast
 from datetime import datetime as dt
 from os import makedirs, path
-from pandas import DataFrame as df, read_excel
+from pandas import DataFrame as df, notnull, read_excel
 
 
 def SaveAsExcel(
@@ -49,5 +50,48 @@ def flatten_dict(
 
 
 def ReadFromExcel(file_loc: str) -> dict:
-    res = read_excel(file_loc)
+    from numpy import nan
+
+    raw = read_excel(file_loc, dtype={"name": str})
+    res = convert_json_columns(data=raw)
+    res = res.replace(nan, None)
     return res.to_dict(orient="records")
+
+
+def is_json_like(value):
+    """
+    Checks if a value is a JSON-like string by trying to safely evaluate it.
+    Returns True if the value can be safely converted to a dict or list.
+    """
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = ast.literal_eval(value)
+        return isinstance(parsed, (dict, list))
+    except (ValueError, SyntaxError):
+        return False
+
+
+def safe_literal_eval(value):
+    """
+    Safely evaluates a string using ast.literal_eval.
+    If evaluation fails, it returns the original value.
+    """
+    try:
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        return value
+
+
+def convert_json_columns(data: df):
+    """
+    Detects columns with JSON-like strings and converts them into actual dictionaries or lists.
+    """
+    for column in data.columns:
+        # Check if at least 50% of the non-null entries in the column are JSON-like
+        non_null_values = data[column].dropna()
+        json_like_count = non_null_values.apply(is_json_like).sum()
+        if len(non_null_values) > 0 and (json_like_count / len(non_null_values)) >= 0.5:
+            # Convert the column using safe_literal_eval
+            data[column] = data[column].apply(safe_literal_eval)
+    return data

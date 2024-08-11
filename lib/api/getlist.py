@@ -22,7 +22,7 @@ class ElementOfTenant(BaseModel):
         self.data = res.json()
 
 
-class InterfaceOfTenant(BaseModel): 
+class InterfaceOfTenant(BaseModel):
     bearerToken: str
     siteId: int | str
     elementId: int | str
